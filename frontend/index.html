@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GeoTwin AI - Digital Twin Landslide Early Warning System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css" />
+  <!-- Three.js and OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="theme-dark">
+  <div class="app-layout">
+    
+    <!-- TOP NAVIGATION BAR -->
+    <header class="top-nav">
+      <div class="nav-brand">
+        <div class="logo-orb"><i class="fa-solid fa-mountain"></i></div>
+        <div class="brand-titles">
+          <h1>GEOTWIN <span class="accent-text">AI</span></h1>
+          <span class="sub-brand">Digital Twin Geotechnical Landslide Early Warning Platform</span>
+        </div>
+      </div>
+
+      <div class="nav-status-cluster">
+        <div class="status-chip live-pulse" id="telemetry-connection">
+          <span class="pulse-dot"></span>
+          <span id="conn-text">LIVE STREAMING</span>
+        </div>
+        <div class="status-chip" id="chip-time">
+          <i class="fa-regular fa-clock"></i>
+          <span id="sim-clock">T+0.00 hrs</span>
+        </div>
+        <div class="status-chip alert-chip alert-green" id="global-alert-badge">
+          <i class="fa-solid fa-shield-halved" id="alert-icon"></i>
+          <span id="alert-badge-text">ALERT: GREEN (SAFE)</span>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <button class="btn btn-outline" id="btn-monte-carlo" title="Run Monte Carlo Probabilistic Analysis">
+          <i class="fa-solid fa-chart-pie"></i> Monte Carlo
+        </button>
+        <button class="btn btn-outline" id="btn-train-models" title="Train & Compare Machine Learning Models">
+          <i class="fa-solid fa-brain"></i> Train ML Models
+        </button>
+        <button class="btn btn-primary" id="btn-export-report" title="Generate Executive Geotechnical PDF Report">
+          <i class="fa-solid fa-file-pdf"></i> Export Report
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN DASHBOARD CONTENT (10 PANELS + 3D TWIN) -->
+    <main class="dashboard-grid">
+      
+      <!-- HERO 3D DIGITAL TWIN VIEWER -->
+      <section class="panel panel-hero grid-col-span-8" id="panel-3d-twin">
+        <div class="panel-header">
+          <div class="header-left">
+            <span class="panel-tag">CORE PLATFORM</span>
+            <h2><i class="fa-solid fa-cube"></i> 3D Hillslope Digital Twin</h2>
+          </div>
+          <div class="header-controls">
+            <div class="view-buttons">
+              <button class="btn-icon active" id="view-perspective" title="Perspective View">3D</button>
+              <button class="btn-icon" id="view-profile" title="Side Profile View">Side</button>
+              <button class="btn-icon" id="view-top" title="Top View">Top</button>
+            </div>
+            <button class="btn-sm" id="btn-toggle-vectors"><i class="fa-solid fa-arrows-split-up-and-left"></i> Vectors</button>
+            <button class="btn-sm" id="btn-toggle-water"><i class="fa-solid fa-water"></i> Water Plane</button>
+            <button class="btn-sm" id="btn-toggle-sensors"><i class="fa-solid fa-tower-broadcast"></i> Sensors</button>
+          </div>
+        </div>
+
+        <div class="twin-viewport-container" id="twin-viewport">
+          <!-- Three.js Canvas injected here -->
+          <div class="twin-overlay-hud">
+            <div class="hud-item">
+              <span class="hud-lbl">SLOPE ANGLE</span>
+              <span class="hud-val" id="hud-slope-angle">28.0°</span>
+            </div>
+            <div class="hud-item">
+              <span class="hud-lbl">SOIL TYPE</span>
+              <span class="hud-val" id="hud-soil-type">Clay</span>
+            </div>
+            <div class="hud-item">
+              <span class="hud-lbl">WETTING FRONT</span>
+              <span class="hud-val" id="hud-wetting-front">0.40 m</span>
+            </div>
+            <div class="hud-item">
+              <span class="hud-lbl">WATER TABLE</span>
+              <span class="hud-val" id="hud-water-table">4.80 m</span>
+            </div>
+          </div>
+
+          <div class="twin-legend">
+            <div class="legend-item"><span class="legend-box safe"></span> Safe (FoS &gt; 1.5)</div>
+            <div class="legend-item"><span class="legend-box moderate"></span> Moderate (1.2 - 1.5)</div>
+            <div class="legend-item"><span class="legend-box high"></span> High Risk (1.0 - 1.2)</div>
+            <div class="legend-item"><span class="legend-box failure"></span> Failure Imminent (&le; 1.0)</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANEL 2: FACTOR OF SAFETY MONITOR & GAUGE -->
+      <section class="panel grid-col-span-4" id="panel-fos">
+        <div class="panel-header">
+          <div class="header-left">
+            <span class="panel-tag">PANEL 2</span>
+            <h2><i class="fa-solid fa-gauge-high"></i> Factor of Safety (FoS)</h2>
+          </div>
+          <span class="status-indicator safe" id="fos-badge">SAFE</span>
+        </div>
+        
+        <div class="fos-gauge-wrapper">
+          <div class="fos-numeric-display">
+            <span class="fos-huge-value" id="val-fos">1.68</span>
+            <span class="fos-unit">FoS Ratio</span>
+            <div class="fos-classification" id="val-fos-class">Safe Hillslope Equilibrium</div>
+          </div>
+          <div class="fos-meter-track">
+            <div class="fos-meter-fill" id="fos-meter-fill" style="width: 78%;"></div>
+            <div class="fos-meter-marker" style="left: 50%;"><span>1.0 (Crit)</span></div>
+            <div class="fos-meter-marker" style="left: 60%;"><span>1.2</span></div>
+            <div class="fos-meter-marker" style="left: 75%;"><span>1.5</span></div>
+          </div>
+        </div>
+
+        <div class="card-chart-container">
+          <canvas id="chart-fos-history"></canvas>
+        </div>
+      </section>
+
+      <!-- PANEL 1: LIVE VIRTUAL SENSORS TELEMETRY (8 SENSORS) -->
+      <section class="panel grid-col-span-12" id="panel-virtual-sensors">
+        <div class="panel-header">
+          <div class="header-left">
+            <span class="panel-tag">PANEL 1</span>
+            <h2><i class="fa-solid fa-microchip"></i> Live Virtual Sensor Array Telemetry (8 Digital Twin Nodes)</h2>
+          </div>
+          <div class="sensor-sync-badge"><i class="fa-solid fa-arrows-rotate fa-spin"></i> IoT Synchronized</div>
+        </div>
+
+        <div class="sensors-grid">
+          <!-- Sensor 1: Rain Gauge -->
+          <div class="sensor-card">
+            <div class="sensor-top">
+              <span class="sensor-id">RG-01</span>
+              <i class="fa-solid fa-cloud-showers-heavy sensor-icon"></i>
+            </div>
+            <div class="sensor-value-group">
+              <span class="sensor-val" id="val-s-rain">0.0</span>
+              <span class="sensor-unit">mm/h</span>
+            </div>
+            <div class="sensor-name">Optical Rain Gauge</div>
+            <div class="sensor-progress-bar"><div class="bar-fill" id="bar-rain" style="width: 0%;"></div></div>
+          </div>
+
+          <!-- Sensor 2: Soil Moisture -->
+          <div class="sensor-card">
+            <div class="sensor-top">
+              <span class="sensor-id">SM-01</span>
+              <i class="fa-solid fa-droplet sensor-icon"></i>
+            </div>
+            <div class="sensor-value-group">
+              <span class="sensor-val" id="val-s-moisture">24.0</span>
+              <span class="sensor-unit">%</span>
+            </div>
+            <div class="sensor-name">Soil Moisture (FDR)</div>
+            <div class="sensor-progress-bar"><div class="bar-fill" id="bar-moisture" style="width: 24%;"></div></div>
+          </div>
+
+          <!-- Sensor 3: Inclinometer / Tilt -->
+          <div class="sensor-card">
+            <div class="sensor-top">
+              <span class="sensor-id">TL-01</span>
+              <i class="fa-solid fa-up-right-and-down-left-from-center sensor-icon"></i>
+            </div>
+            <div class="sensor-value-group">
+              <span class="sensor-val" id="val-s-tilt">0.00</span>
+              <span class="sensor-unit">°</span>
+            </div>
+            <div class="sensor-name">Biaxial Inclinometer (Tilt)</div>
+            <div class="sensor-progress-bar"><div class="bar-fill" id="bar-tilt" style="width: 0%;"></div></div>
+          </div>
+
+          <!-- Sensor 4: Accelerometer -->
+          <div class="sensor-card">
+            <div class="sensor-top">
+              <span class="sensor-id">AC-01</span>
+              <i class="fa-solid fa-wave-square sensor-icon"></i>
+            </div>
+            <div class="sensor-value-group">
+              <span class="sensor-val" id="val-s-accel">0.000</span>
+              <span class="sensor-unit">g (PGA)</span>
+            </div>
+            <div class="sensor-name">Triaxial Accelerometer</div>
+            <div class="sensor-progress-bar"><div class="bar-fill" id="bar-accel" style="width: 0%;"></div></div>
+          </div>
+
+          <!-- Sensor 5: Piezometer -->
+          <div class="sensor-card">
+            <div class="sensor-top">
+              <span class="sensor-id">PZ-01</span>
+              <i class="fa-solid fa-gauge sensor-icon"></i>
+            </div>
+            <div class="sensor-value-group">
+              <span class="sensor-val" id="val-s-pore">0.0</span>
+              <span class="sensor-unit">kPa</span>
+            </div>
+            <div class="sensor-name">VW Piezometer (Pore Press.)</div>
+            <div class="sensor-progress-bar"><div class="bar-fill" id="bar-pore" style="width: 0%;"></div></div>
+          </div>
+
+          <!-- Sensor 6: Groundwater Level -->
+          <div class="sensor-card">
+            <div class="sensor-top">
+              <span class="sensor-id">GW-01</span>
+              <i class="fa-solid fa-water sensor-icon"></i>
+            </div>
+            <div class="sensor-value-group">
+              <span class="sensor-val" id="val-s-gw">4.80</span>
+              <span class="sensor-unit">m</span>
+            </div>
+            <div class="sensor-name">Groundwater Table Depth</div>
+            <div class="sensor-progress-bar"><div class="bar-fill" id="bar-gw" style="width: 20%;"></div></div>
+          </div>
+
+          <!-- Sensor 7: Ambient Temperature -->
+          <div class="sensor-card">
+            <div class="sensor-top">
+              <span class="sensor-id">TH-01</span>
+              <i class="fa-solid fa-temperature-half sensor-icon"></i>
+            </div>
+            <div class="sensor-value-group">
+              <span class="sensor-val" id="val-s-temp">26.5</span>
+              <span class="sensor-unit">°C</span>
+            </div>
+            <div class="sensor-name">Ambient Temperature</div>
+            <div class="sensor-progress-bar"><div class="bar-fill" id="bar-temp" style="width: 53%;"></div></div>
+          </div>
+
+          <!-- Sensor 8: Relative Humidity -->
+          <div class="sensor-card">
+            <div class="sensor-top">
+              <span class="sensor-id">TH-02</span>
+              <i class="fa-solid fa-wind sensor-icon"></i>
+            </div>
+            <div class="sensor-value-group">
+              <span class="sensor-val" id="val-s-humidity">62.0</span>
+              <span class="sensor-unit">%</span>
+            </div>
+            <div class="sensor-name">Relative Humidity</div>
+            <div class="sensor-progress-bar"><div class="bar-fill" id="bar-humidity" style="width: 62%;"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANEL 3: RAINFALL TRENDS & INFILTRATION -->
+      <section class="panel grid-col-span-6" id="panel-rainfall">
+        <div class="panel-header">
+          <div class="header-left">
+            <span class="panel-tag">PANEL 3</span>
+            <h2><i class="fa-solid fa-cloud-rain"></i> Rainfall Trends & Green-Ampt Infiltration</h2>
+          </div>
+        </div>
+        <div class="card-chart-container">
+          <canvas id="chart-rainfall"></canvas>
+        </div>
+        <div class="mini-stats-row">
+          <div class="mini-stat">
+            <span class="lbl">Cum. Infiltration</span>
+            <span class="val" id="stat-cum-inf">0.05 m</span>
+          </div>
+          <div class="mini-stat">
+            <span class="lbl">Rain Duration</span>
+            <span class="val" id="stat-rain-dur">0.0 hrs</span>
+          </div>
+          <div class="mini-stat">
+            <span class="lbl">I-D Threshold (Caine)</span>
+            <span class="val accent" id="stat-caine-thresh">Safe (Below I-D)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANEL 4: GROUNDWATER & PORE PRESSURE -->
+      <section class="panel grid-col-span-6" id="panel-groundwater">
+        <div class="panel-header">
+          <div class="header-left">
+            <span class="panel-tag">PANEL 4</span>
+            <h2><i class="fa-solid fa-layer-group"></i> Groundwater Dynamics & Pore Water Pressure</h2>
+          </div>
+        </div>
+        <div class="card-chart-container">
+          <canvas id="chart-gw-pore"></canvas>
+        </div>
+        <div class="mini-stats-row">
+          <div class="mini-stat">
+            <span class="lbl">Slip Surface Depth</span>
+            <span class="val" id="stat-slip-depth">3.5 m</span>
+          </div>
+          <div class="mini-stat">
+            <span class="lbl">Wetting Front Advance</span>
+            <span class="val" id="stat-wet-depth">0.40 m</span>
+          </div>
+          <div class="mini-stat">
+            <span class="lbl">Hydraulic Head</span>
+            <span class="val" id="stat-hyd-head">0.00 m</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANEL 5: SEISMIC & EARTHQUAKE MONITOR -->
+      <section class="panel grid-col-span-4" id="panel-earthquake">
+        <div class="panel-header">
+          <div class="header-left">
+            <span class="panel-tag">PANEL 5</span>
+            <h2><i class="fa-solid fa-volcano"></i> Seismic Disturbance</h2>
+          </div>
+          <span class="seismic-badge" id="seismic-badge">DORMANT</span>
+        </div>
+        <div class="card-chart-container">
+          <canvas id="chart-seismic"></canvas>
+        </div>
+        <div class="seismic-details">
+          <div class="seismic-row">
+            <span>Magnitude (M):</span>
+            <strong id="val-seismic-mag">0.0</strong>
+          </div>
+          <div class="seismic-row">
+            <span>Peak Ground Accel (PGA):</span>
+            <strong id="val-seismic-pga">0.000 g</strong>
+          </div>
+          <div class="seismic-row">
+            <span>Pseudo-static kh:</span>
+            <strong id="val-seismic-kh">0.0000</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANEL 6: MACHINE LEARNING PREDICTIONS -->
+      <section class="panel grid-col-span-8" id="panel-ml">
+        <div class="panel-header">
+          <div class="header-left">
+            <span class="panel-tag">PANEL 6</span>
+            <h2><i class="fa-solid fa-brain"></i> Machine Learning Landslide Prediction & Benchmark</h2>
+          </div>
+          <div class="active-model-tag" id="active-model-name">Random Forest Classifier</div>
+        </div>
+
+        <div class="ml-dashboard-layout">
+          <div class="ml-left-summary">
+            <div class="ml-prob-card">
+              <span class="prob-title">Landslide Probability</span>
+              <div class="prob-val-huge" id="val-ml-prob">8.0%</div>
+              <div class="prob-risk-label" id="val-ml-risk">Low Risk</div>
+              <div class="prob-confidence">Confidence: <span id="val-ml-conf">92.0%</span></div>
+            </div>
+
+            <div class="ml-action-box">
+              <button class="btn btn-sm btn-primary" id="btn-trigger-retrain">
+                <i class="fa-solid fa-rotate"></i> Retrain & Compare All
+              </button>
+            </div>
+          </div>
+
+          <div class="ml-right-table">
+            <div class="table-title">Model Comparative Leaderboard</div>
+            <table class="data-table" id="table-ml-leaderboard">
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Accuracy</th>
+                  <th>Precision</th>
+                  <th>Recall</th>
+                  <th>F1 Score</th>
+                  <th>ROC-AUC</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-tbody">
+                <tr><td>Random Forest</td><td>97.8%</td><td>96.2%</td><td>95.5%</td><td><strong>95.8%</strong></td><td>0.992</td></tr>
+                <tr><td>XGBoost (GBDT)</td><td>97.4%</td><td>95.8%</td><td>95.1%</td><td>95.4%</td><td>0.989</td></tr>
+                <tr><td>LightGBM (HistGB)</td><td>97.6%</td><td>96.0%</td><td>95.3%</td><td>95.6%</td><td>0.990</td></tr>
+                <tr><td>Deep Neural Net (LSTM Equiv)</td><td>96.2%</td><td>94.1%</td><td>93.8%</td><td>93.9%</td><td>0.978</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANEL 7: 2D GEOSPATIAL RISK MAP -->
+      <section class="panel grid-col-span-6" id="panel-risk-map">
+        <div class="panel-header">
+          <div class="header-left">
+            <span class="panel-tag">PANEL 7</span>
+            <h2><i class="fa-solid fa-map"></i> 2D Geospatial Cross-Section Stability Heatmap</h2>
+          </div>
+          <button class="btn-sm" id="btn-refresh-risk-map"><i class="fa-solid fa-arrows-rotate"></i> Scan Grid</button>
+        </div>
+        <div class="risk-map-canvas-container">
+          <canvas id="canvas-risk-heatmap" width="560" height="220"></canvas>
+        </div>
+        <div class="risk-map-footer">
+          <span>X-Axis: Slope Distance (0m - 100m)</span>
+          <span>Y-Axis: Regolith Depth (0.5m - 8.0m)</span>
+        </div>
+      </section>
+
+      <!-- PANEL 8: ALERT STATUS & EMERGENCY ACTIONS -->
+      <section class="panel grid-col-span-6" id="panel-alerts">
+        <div class="panel-header">
+          <div class="header-left">
+            <span class="panel-tag">PANEL 8</span>
+            <h2><i class="fa-solid fa-bell"></i> Multi-Criteria Early Warning Alert Center</h2>
+          </div>
+        </div>
+
+        <div class="alert-status-container">
+          <div class="alert-banner alert-green" id="alert-main-banner">
+            <div class="alert-banner-icon"><i class="fa-solid fa-shield-halved" id="banner-icon"></i></div>
+            <div class="alert-banner-content">
+              <h3 id="banner-title">CURRENT STATUS: GREEN - ALL CLEAR</h3>
+              <p id="banner-desc">All geotechnical slope stability indices remain within safe limits. Normal monitoring ongoing.</p>
+            </div>
+          </div>
+
+          <div class="alert-thresholds-grid">
+            <div class="thresh-card">
+              <span class="thresh-name">FoS Status</span>
+              <span class="thresh-val" id="thresh-fos">&gt; 1.50 (Safe)</span>
+            </div>
+            <div class="thresh-card">
+              <span class="thresh-name">Pore Pressure Alarm</span>
+              <span class="thresh-val" id="thresh-pore">Nominal</span>
+            </div>
+            <div class="thresh-card">
+              <span class="thresh-name">I-D Rainfall Warning</span>
+              <span class="thresh-val" id="thresh-rain">Below Trigger</span>
+            </div>
+            <div class="thresh-card">
+              <span class="thresh-name">Seismic Hazard</span>
+              <span class="thresh-val" id="thresh-seismic">Normal</span>
+            </div>
+          </div>
+
+          <div class="action-directive-box">
+            <strong>RECOMMENDED GEOTECHNICAL PROTOCOL:</strong>
+            <p id="action-protocol-text">Continue routine telemetry collection at 1.0Hz. Inspect drainage culverts weekly.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANEL 9: DISASTER SIMULATION STUDIO & HISTORICAL REPLAY -->
+      <section class="panel grid-col-span-6" id="panel-disaster-studio">
+        <div class="panel-header">
+          <div class="header-left">
+            <span class="panel-tag">PANEL 9</span>
+            <h2><i class="fa-solid fa-tornado"></i> Natural Disaster Simulation Studio</h2>
+          </div>
+          <button class="btn-sm btn-danger" id="btn-reset-disasters"><i class="fa-solid fa-rotate-left"></i> Reset Baseline</button>
+        </div>
+
+        <p class="panel-desc">Inject realistic scientific disaster conditions to test digital twin resilience and alert thresholds:</p>
+        
+        <div class="disaster-buttons-grid">
+          <button class="btn-disaster" data-disaster="Cloudburst">
+            <i class="fa-solid fa-cloud-bolt"></i>
+            <span>Cloudburst</span>
+            <small>145 mm/h Flash Deluge</small>
+          </button>
+
+          <button class="btn-disaster" data-disaster="Cyclone Rainfall">
+            <i class="fa-solid fa-hurricane"></i>
+            <span>Cyclone Rain</span>
+            <small>85 mm/h Sustained</small>
+          </button>
+
+          <button class="btn-disaster" data-disaster="Earthquake" data-mag="7.2">
+            <i class="fa-solid fa-hill-rockslide"></i>
+            <span>7.2M Earthquake</span>
+            <small>High PGA Seismic Shock</small>
+          </button>
+
+          <button class="btn-disaster" data-disaster="Flash Flood">
+            <i class="fa-solid fa-water"></i>
+            <span>Flash Flood</span>
+            <small>Rapid Runoff Influx</small>
+          </button>
+
+          <button class="btn-disaster" data-disaster="Sudden Groundwater Surge">
+            <i class="fa-solid fa-arrow-up-from-water-pump"></i>
+            <span>GW Surge</span>
+            <small>Piezometric Rise</small>
+          </button>
+
+          <button class="btn-disaster" data-disaster="Reservoir Overflow">
+            <i class="fa-solid fa-faucet-drip"></i>
+            <span>Reservoir Spill</span>
+            <small>Saturation Overload</small>
+          </button>
+        </div>
+      </section>
+
+      <!-- PANEL 10: SYSTEM HEALTH & DIGITAL TWIN PARAMETER CONTROLS -->
+      <section class="panel grid-col-span-6" id="panel-config">
+        <div class="panel-header">
+          <div class="header-left">
+            <span class="panel-tag">PANEL 10</span>
+            <h2><i class="fa-solid fa-sliders"></i> Digital Twin Health & Geotechnical Controls</h2>
+          </div>
+        </div>
+
+        <div class="config-controls-grid">
+          <div class="control-field">
+            <label for="select-soil">Soil Classification</label>
+            <select id="select-soil" class="form-input">
+              <option value="Clay" selected>Clay (c=25 kPa, φ=18°)</option>
+              <option value="Sandy Soil">Sandy Soil (c=2 kPa, φ=34°)</option>
+              <option value="Silty Soil">Silty Soil (c=12 kPa, φ=26°)</option>
+              <option value="Gravel">Gravel (c=0.5 kPa, φ=38°)</option>
+              <option value="Laterite">Laterite (c=30 kPa, φ=24°)</option>
+              <option value="Weathered Rock">Weathered Rock (c=45 kPa, φ=32°)</option>
+            </select>
+          </div>
+
+          <div class="control-field">
+            <label for="range-slope">Slope Angle: <span id="lbl-slope-val">28°</span></label>
+            <input type="range" id="range-slope" min="5" max="60" value="28" class="form-range" />
+          </div>
+
+          <div class="control-field">
+            <label for="range-depth">Slip Depth: <span id="lbl-depth-val">3.5 m</span></label>
+            <input type="range" id="range-depth" min="1.0" max="8.0" step="0.5" value="3.5" class="form-range" />
+          </div>
+
+          <div class="control-field">
+            <label>Generate 100k Dataset</label>
+            <button class="btn btn-outline w-100" id="btn-generate-100k">
+              <i class="fa-solid fa-database"></i> Generate 100,000 Samples
+            </button>
+          </div>
+        </div>
+
+        <div class="system-health-strip">
+          <div class="health-item"><span class="h-dot online"></span> Physics Engine: Active</div>
+          <div class="health-item"><span class="h-dot online"></span> 3D WebGL: 60 FPS</div>
+          <div class="health-item"><span class="h-dot online"></span> Sensor Sync: 100%</div>
+          <div class="health-item"><span class="h-dot online"></span> WebSocket: Connected</div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+      <div>Digital Twin-Based Intelligent Landslide Early Warning System &bull; MATLAB, Simulink, Machine Learning & Web Dashboard</div>
+      <div>Geotechnical Infinite Slope Stability &bull; Green-Ampt Coupled &bull; v2.0.0</div>
+    </footer>
+
+    <!-- MONTE CARLO MODAL -->
+    <div class="modal-overlay" id="modal-monte-carlo">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-chart-pie"></i> Monte Carlo Geotechnical Uncertainty Simulation</h3>
+          <button class="modal-close" id="btn-close-mc">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p>Iterates 2,000 stochastic draws varying cohesion ($c$), internal friction angle ($\phi$), and pore water pressure ($u$):</p>
+          <div class="mc-stats-grid">
+            <div class="mc-stat-card"><span class="lbl">Prob of Failure</span><span class="val accent" id="mc-pof">0.0%</span></div>
+            <div class="mc-stat-card"><span class="lbl">Mean FoS</span><span class="val" id="mc-mean">1.68</span></div>
+            <div class="mc-stat-card"><span class="lbl">Std Deviation</span><span class="val" id="mc-std">0.14</span></div>
+            <div class="mc-stat-card"><span class="lbl">5th Percentile</span><span class="val" id="mc-p5">1.45</span></div>
+          </div>
+          <div class="mc-chart-box">
+            <canvas id="chart-mc-histogram"></canvas>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" id="btn-rerun-mc"><i class="fa-solid fa-arrows-rotate"></i> Re-run Simulation</button>
+          <button class="btn btn-primary" id="btn-close-mc-action">Close</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Application Scripts -->
+  <script src="twin3d.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
