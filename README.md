@@ -2,11 +2,11 @@
 
 ### MATLAB • Simulink • Python • Machine Learning • Web-Based 3D Digital Twin
 
-[![System Validation](https://img.shields.io/badge/System_Validation-6%2F6_Passing-brightgreen.svg)](#18-validation--testing)
-[![Dataset](https://img.shields.io/badge/Synthetic_Dataset-100k_Samples-blue.svg)](#8-synthetic-dataset)
-[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.14-blue.svg)](#15-installation--setup)
-[![MATLAB](https://img.shields.io/badge/MATLAB-R2020b+-orange.svg)](#14-matlab--simulink-integration)
-[![License](https://img.shields.io/badge/License-To_be_determined-lightgrey.svg)](#22-license)
+[![System Validation](https://img.shields.io/badge/System_Validation-7%2F7_Passing-brightgreen.svg)](#17-validation--testing)
+[![Dataset](https://img.shields.io/badge/Synthetic_Dataset-100k_Samples-blue.svg)](#7-synthetic-dataset)
+[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.14-blue.svg)](#14-installation--setup)
+[![MATLAB](https://img.shields.io/badge/MATLAB-R2020b+-orange.svg)](#13-matlab--simulink-integration)
+[![License](https://img.shields.io/badge/License-To_be_determined-lightgrey.svg)](#21-license)
 
 ---
 
@@ -17,7 +17,7 @@ Landslides represent complex, high-consequence geohazards triggered by coupled h
 This project implements a **Physics-Informed Cyber-Physical Digital Twin Platform** for hillslope stability monitoring and early warning. The platform bridges geotechnical physics, hydrological infiltration dynamics, machine learning, and interactive WebGL 3D visualization:
 
 * **Hydrological Infiltration:** Tracks precipitation flux, wetting front progression, and groundwater table recharge using the Green-Ampt infiltration formulation.
-* **Pore Pressure & Limit Equilibrium:** Calculates continuous effective stress and Factor of Safety ($FoS$) using the geotechnical Infinite Slope Stability Model with pseudo-static seismic coefficients.
+* **Pore Pressure & Limit Equilibrium:** Calculates continuous effective stress and Factor of Safety ($FoS$) using the geotechnical Infinite Slope Stability Model with pseudo-static seismic coefficients and physical boundary handling.
 * **Hybrid Early Warning:** Fuses deterministic limit-equilibrium safety factors, real-time virtual sensor telemetry, and non-linear machine learning risk probabilities into an integrated multi-criteria alert engine.
 * **Bi-Directional Interactive Twin:** Features an automated 10-subsystem Simulink model, a standalone MATLAB App Designer desktop GUI, and a browser-based 3D WebGL dashboard driven by real-time WebSocket telemetry.
 
@@ -29,8 +29,8 @@ This project implements a **Physics-Informed Cyber-Physical Digital Twin Platfor
 
 The repository contains a complete, working implementation spanning geotechnical modeling, dataset synthesis, machine learning, backend services, frontend visualization, and MATLAB/Simulink workflows:
 
-* **Physics-Informed Limit Equilibrium Engine:** Closed-form Infinite Slope Stability calculation accounting for soil cohesion ($c$), root bio-cohesion ($c_r$), internal friction angle ($\phi$), dynamic pore water pressure ($u$), and horizontal seismic coefficient ($k_h$).
-* **Green-Ampt Hydrological Model:** 1D transient infiltration simulation computing potential vs. actual infiltration capacity, moisture deficit, wetting front depth, and phreatic surface rise.
+* **Physics-Informed Limit Equilibrium Engine:** Closed-form Infinite Slope Stability calculation accounting for soil cohesion ($c$), root bio-cohesion ($c_r$), internal friction angle ($\phi$), dynamic pore water pressure ($u$), and horizontal seismic coefficient ($k_h$). Includes asymptotic slope boundary handling ($\le 0.5^\circ \to FoS = 10.0$ flat ground, $\ge 75^\circ \to FoS \le 0.05$ steep cliff) and hydrostatic pore pressure head clamping ($head \le z$).
+* **Green-Ampt Hydrological Model:** 1D transient infiltration simulation computing potential vs. actual infiltration capacity, moisture deficit, physical regolith mantle constraints ($z_w \le 8.0\text{ m}$), and phreatic surface rise.
 * **Geotechnical Soil Catalog:** Built-in geotechnical parameter database covering 6 soil classifications: *Clay, Sandy Soil, Silty Soil, Gravel, Laterite, and Weathered Rock*.
 * **Synthetic Dataset Generator:** Automated pipeline synthesizing 100,000+ physically consistent observations across 16 standardized features, exportable to CSV and MATLAB `.mat` formats.
 * **Multi-Architecture ML Benchmark:** Embedded training and inference engine comparing Random Forest, Gradient Boosted Trees (XGBoost equiv.), Histogram Gradient Boosting (LightGBM equiv.), and Deep Sequence Neural Networks (MLP equiv.).
@@ -38,10 +38,15 @@ The repository contains a complete, working implementation spanning geotechnical
 * **Natural Disaster Simulation Studio:** Parameterized real-time disturbance injector modeling *Cloudbursts (145 mm/h), Cyclonic Rain (85 mm/h), Earthquakes (M3.0–M8.5), Flash Floods, Reservoir Overflows, and Sudden Groundwater Surges*.
 * **Virtual IoT Sensor Layer:** 8-node virtual sensor array with Gaussian measurement noise emulating *Rain Gauges, Soil Moisture (FDR), Biaxial Inclinometers, Triaxial Accelerometers, VW Piezometers, Water Table Probes, and Ambient Meteo Sensors*.
 * **Stochastic Monte Carlo Engine:** Probabilistic uncertainty analysis running 2,000 stochastic parameter draws on cohesion, friction angle, and pore pressure to compute Failure Probability ($P_f$) and FoS confidence intervals.
-* **FastAPI & WebSocket Server:** High-performance Python backend serving 12 REST API endpoints and a 1.2s live WebSocket telemetry broadcast.
-* **WebGL 3D Hillslope Twin:** Interactive Three.js 3D hillslope digital twin featuring real-time camera view presets (**3D Perspective**, **Side Profile**, **Top View**), feature toggles (**Vectors**, **Water Plane**, **Sensors**), 3D natural calamity rendering (**Rain particle storms, Cloudburst lightning, Earthquake ground shake, Surface flood pooling**), dynamic soil material shaders (*Clay, Sandy Soil, Silty Soil, Gravel, Laterite, Weathered Rock*), live slope angle mesh deformation ($5^\circ$ to $60^\circ$), and interactive slip surface scaling.
+* **FastAPI & WebSocket Server:** High-performance Python backend serving 12 REST API endpoints, synchronized parameter updates (including slip depth), and a 1.2s live WebSocket telemetry broadcast.
+* **WebGL 3D Hillslope Twin:** Interactive Three.js 3D hillslope digital twin featuring:
+  - **Camera View Presets:** Smooth lerp transitions between **3D Perspective**, **Side Profile**, and **Top View**.
+  - **Viewport Layer Toggles:** Real-time visibility switching for **Displacement Vectors**, **Phreatic Water Plane**, and **IoT Sensor Nodes** with active state indicators.
+  - **3D Natural Calamities Visualizer:** Dynamic 1,200-particle rain storm system scaled by rainfall rate ($mm/h$), atmospheric storm sky darkening, cloudburst lightning flash effects, procedural seismic camera & terrain micro-vibrations, and surface flood water pooling.
+  - **Dynamic Soil Shaders & Material Palettes:** Realistic PBR-styled material rendering calibrated for all 6 soil classifications (*Clay, Sandy Soil, Silty Soil, Gravel, Laterite, Weathered Rock*).
+  - **Live Terrain Geometry Deformation:** Real-time 3D hillslope mesh reshaping on slope inclination adjustment ($5^\circ$ to $60^\circ$) and interactive slip surface depth scaling ($1.0\text{ m}$ to $8.0\text{ m}$).
 * **MATLAB & Simulink Platform:** Programmatic 10-subsystem Simulink digital twin model builder (`.slx`), 48-hour physical simulation scripts, ROC benchmark suite, and desktop App Designer GUI.
-* **Automated Test Suite:** Built-in Python test harness (`test_system.py`) providing full verification of physics equations, dataset schema, ML pipeline, and digital twin state transitions.
+* **Automated Test Suite:** Built-in Python test harness (`test_system.py`) providing 7 comprehensive verification tests covering physics equations, numerical stability edge cases, dataset schema, ML pipeline, and digital twin state transitions.
 
 ---
 
@@ -134,9 +139,9 @@ $$\mathbf{S}(t) = \left[ \theta(t), z_w(t), z_{\text{gw}}(t), u(t), \theta_v(t),
 | State Symbol | Variable Name | Physical Unit | Description |
 | :--- | :--- | :--- | :--- |
 | $\theta$ | Slope Inclination | degrees ($^\circ$) | Hillslope surface inclination angle ($5^\circ - 60^\circ$) |
-| $z$ | Slip Surface Depth | meters ($\text{m}$) | Depth of potential planar shear failure interface ($2.5 - 4.5\ \text{m}$) |
-| $z_w$ | Wetting Front Depth | meters ($\text{m}$) | Depth of downward advancing precipitation saturation front |
-| $z_{\text{gw}}$ | Phreatic Water Table | meters ($\text{m}$) | Depth of groundwater table below terrain surface |
+| $z$ | Slip Surface Depth | meters ($\text{m}$) | Depth of potential planar shear failure interface ($1.0 - 8.0\ \text{m}$) |
+| $z_w$ | Wetting Front Depth | meters ($\text{m}$) | Depth of downward advancing precipitation saturation front ($\le 8.0\ \text{m}$) |
+| $z_{\text{gw}}$ | Phreatic Water Table | meters ($\text{m}$) | Depth of groundwater table below terrain surface ($0.2 - 6.0\ \text{m}$) |
 | $u$ | Pore Water Pressure | $\text{kPa}$ | Fluid pressure exerting destabilizing uplift on soil grains |
 | $\theta_v$ | Volumetric Moisture | $\%$ | Degree of pore void water saturation |
 | $k_h$ | Seismic Coefficient | dimensionless | Horizontal inertial earthquake disturbance ratio |
@@ -164,6 +169,11 @@ The Factor of Safety ($FoS$) is defined as the ratio of available resisting shea
 
 $$FoS = \frac{\tau_f}{\tau_d} = \frac{(c + c_r) + \left[\gamma z \cos^2\theta - u - k_h \gamma z \sin\theta \cos\theta\right] \tan\phi}{\gamma z \sin\theta \cos\theta + k_h \gamma z \cos^2\theta}$$
 
+#### Asymptotic Boundary & Edge-Case Handling:
+* **Flat Ground Limit ($\theta \le 0.5^\circ$):** Driving gravitational shear stresses approach zero ($\tau_d \to 0$). The solver safely returns $FoS = 10.0$ (`Safe`) without numerical division-by-zero singularities.
+* **Near-Vertical Cliffs ($\theta \ge 75.0^\circ$):** Normal confinement vanishes while gravitational down-slope shear dominates. The engine clamps $FoS \le 0.05$ (`Failure Imminent`).
+* **Resisting Stress Safeguard:** If pore water pressure uplift exceeds confining normal stress ($\sigma_n' \le 0$), resisting shear strength drops to cohesion alone ($\tau_f = c + c_r$).
+
 #### Variable Definitions & SI Units:
 * $c$: Soil cohesion [$\text{kPa} = \text{kN/m}^2$]
 * $c_r$: Root bio-cohesion reinforcement [$\text{kPa}$]
@@ -185,18 +195,18 @@ $$f_{\text{act}}(t) = \min\left( I_{\text{rain}}(t),\, f_p(t) \right)$$
 
 $$F(t + \Delta t) = F(t) + f_{\text{act}}(t) \cdot \Delta t$$
 
-$$z_w(t) = \frac{F(t)}{\Delta\theta}$$
+$$z_w(t) = \min\left( 8.0,\, \frac{F(t)}{\Delta\theta} \right)$$
 
-where $K_{\text{sat}}$ is saturated hydraulic conductivity ($\text{m/s}$), $\psi_f$ is wetting front matric suction head ($\text{m}$), $\Delta\theta = \theta_s - \theta_i$ is moisture deficit, $F(t)$ is cumulative infiltration ($\text{m}$), $I_{\text{rain}}$ is rainfall intensity ($\text{mm/h}$), and $z_w$ is wetting front depth ($\text{m}$).
+where $K_{\text{sat}}$ is saturated hydraulic conductivity ($\text{m/s}$), $\psi_f$ is wetting front matric suction head ($\text{m}$), $\Delta\theta = \theta_s - \theta_i$ is moisture deficit, $F(t)$ is cumulative infiltration ($\text{m}$), $I_{\text{rain}}$ is rainfall intensity ($\text{mm/h}$), and $z_w$ is wetting front depth ($\text{m}$) physically bounded by the impermeable regolith mantle ($\le 8.0\text{ m}$).
 
 ---
 
 ### 5.4 Pore Water Pressure Coupling
-Pore water pressure $u$ at the shear boundary $z$ is dynamically evaluated based on groundwater table rise and perched wetting front advance:
+Pore water pressure $u$ at the shear boundary $z$ is dynamically evaluated based on groundwater table rise and perched wetting front advance, with hydrostatic head strictly bounded by slip depth ($head \le z$):
 
 $$u = \begin{cases} 
-\gamma_w (z - z_{\text{gw}}) \cos^2\theta & \text{if } z > z_{\text{gw}} \quad (\text{saturated phreatic zone}) \\
-0.4 \gamma_w (z_w - z) \cos^2\theta & \text{if } z_w \ge z \quad (\text{perched infiltration front}) \\
+\gamma_w \min(z,\, z - z_{\text{gw}}) \cos^2\theta & \text{if } z > z_{\text{gw}} \quad (\text{saturated phreatic zone}) \\
+0.4 \gamma_w \min(z,\, z_w - z) \cos^2\theta & \text{if } z_w \ge z \quad (\text{perched infiltration front}) \\
 0.0 & \text{otherwise} \quad (\text{unsaturated capillary zone})
 \end{cases}$$
 
@@ -392,6 +402,25 @@ The interactive web dashboard is built using modern standards (HTML5, Vanilla CS
 +-------------------------------+-------------------------------+-------------------------------+
 ```
 
+### 11.1 Interactive 3D Digital Twin Features (`frontend/twin3d.js`)
+* **Camera View Presets:**
+  - **3D Perspective:** Full-orbit orbital camera providing isometric depth perception of the hillslope and phreatic envelope.
+  - **Side Profile:** Orthogonal lateral cross-section showcasing slip boundary depth ($z$), phreatic groundwater table ($z_{\text{gw}}$), and wetting front advance ($z_w$).
+  - **Top View:** Plan-view aerial orientation for spatial displacement vector monitoring and sensor array positioning.
+* **Viewport Layer Toggles:**
+  - **Vectors:** Toggles real-time 3D shear displacement arrow vectors that scale in length and change color from cyan to bright red as down-slope strain accelerates.
+  - **Water Plane:** Toggles the translucent semi-permeable groundwater table visualization mesh.
+  - **Sensors:** Toggles physical 3D interactive sensor node markers positioned along the crest, mid-slope, and toe.
+* **3D Natural Calamity Visualizer:**
+  - **Rain Storm Particle System:** 1,200 interactive Three.js raindrops with fall velocity dynamically scaled to precipitation intensity ($mm/h$).
+  - **Atmospheric Storm Sky & Lightning:** Dynamic directional light attenuation and procedural cloudburst lightning flashes during severe storms.
+  - **Seismic Camera & Terrain Shaking:** Multi-frequency micro-vibration camera shake coupled to earthquake magnitude ($M3.0 - M8.5$) and Peak Ground Acceleration ($PGA$).
+  - **Surface Flood Water Pooling:** Dynamic water plane mesh that rises and floods the slope toe during flash floods, reservoir overflows, and cloudburst deluges.
+  - **3D Calamity HUD Overlay:** Contextual active hazard banner overlaid directly onto the 3D canvas viewport.
+* **Geotechnical Material Palette & Terrain Deformation:**
+  - Standardized PBR material shaders reflecting the 6 catalog soil types (*Clay, Sandy Soil, Silty Soil, Gravel, Laterite, Weathered Rock*).
+  - Live mesh vertex displacement modifying terrain inclination angle dynamically from $5^\circ$ to $60^\circ$ and slip depth from $1.0\text{ m}$ to $8.0\text{ m}$.
+
 ### Running the Web Application
 
 ```powershell
@@ -415,7 +444,7 @@ The backend is powered by **FastAPI** (`backend/main.py`) and exposes 12 endpoin
 | `GET` | `/api/health` | System status, ML engine state, and active disaster flags |
 | `GET` | `/api/telemetry` | Snapshot of all 8 virtual sensors and stability indices |
 | `POST` | `/api/generate-dataset?samples=100000` | Triggers synthetic dataset generation and CSV export |
-| `POST` | `/api/run-simulation` | Steps the digital twin physics forward with custom environmental forcing |
+| `POST` | `/api/run-simulation?soil_type=Clay&slope_angle=28.0&slip_depth=3.5` | Steps digital twin physics forward with dynamic soil, slope, slip depth, rain, and seismic inputs |
 | `POST` | `/api/train-model` | Fits and evaluates all 4 ML architectures on the active dataset |
 | `POST` | `/api/predict` | Real-time multi-variable inference using the winning model |
 | `GET` | `/api/get-alerts` | Active alert level, risk classification, and emergency actions |
@@ -492,7 +521,7 @@ py -3 -m pip install fastapi uvicorn scikit-learn pandas numpy scipy
 ```bash
 py -3 test_system.py
 ```
-Expected output: `Ran 6 tests in ~0.8s ... OK`
+Expected output: `Ran 7 tests in ~2.2s ... OK`
 
 ### Step 4: Launch Web Dashboard & API
 ```bash
@@ -554,7 +583,7 @@ landslide-digital-twin/
 ├── BASELINE.md                   # Comprehensive baseline system specification
 ├── CHANGELOG.md                  # Project version history and change notes
 ├── details.md                    # Detailed functional requirement specifications
-├── test_system.py                # Automated 6-part software verification test suite
+├── test_system.py                # Automated 7-part software verification test suite
 └── README.md                     # Project overview and technical documentation
 ```
 
@@ -575,6 +604,7 @@ py -3 test_system.py
 * `test_04_ml_engine_pipeline`: Verifies model training, comparative benchmark generation, and real-time inference prediction.
 * `test_05_digital_twin_disaster_injection`: Verifies dynamic state response and safety factor degradation under simulated cloudburst events.
 * `test_06_report_generation`: Verifies synthesis of formatted geotechnical HTML summary reports.
+* `test_07_stability_edge_cases`: Verifies numerical edge cases including flat ground slope limits ($FoS = 10.0$), vertical cliff boundaries ($\theta \ge 75^\circ \to FoS \le 0.05$), pore pressure hydrostatic head physical bounds ($head \le z$), and end-to-end slip surface depth parameter synchronization.
 
 > **Validation Terminology:** These automated tests constitute **software/system verification** and **physics-informed simulation validation**. They do not constitute empirical field validation.
 

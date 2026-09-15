@@ -38,12 +38,28 @@ The GeoTwin AI backend provides a full suite of RESTful endpoints and real-time 
   curl -X POST "http://127.0.0.1:8000/api/generate-dataset?samples=10000"
   ```
 
-### 1.4 Train & Compare ML Models
+### 1.4 Step Simulation & Environment Configuration
+* **Method:** `POST`
+* **Path:** `/api/run-simulation`
+* **Parameters:**
+  * `soil_type` (string, default: `"Clay"`): Soil classification (`Clay`, `Sandy Soil`, `Silty Soil`, `Gravel`, `Laterite`, `Weathered Rock`)
+  * `slope_angle` (float, 5.0 to 60.0, default: `28.0`): Hillslope inclination in degrees
+  * `slip_depth` (float, 1.0 to 8.0, default: `3.5`): Potential slip surface depth in meters
+  * `rainfall_intensity` (float, 0.0 to 250.0, default: `35.0`): Precipitation rate in mm/h
+  * `rainfall_duration` (float, 0.0 to 72.0, default: `6.0`): Continuous precipitation hours
+  * `earthquake_mag` (float, 0.0 to 8.5, default: `0.0`): Seismic moment magnitude
+* **Description:** Reconfigures digital twin geotechnical parameters and steps physical hydrology forward.
+* **cURL:**
+  ```bash
+  curl -X POST "http://127.0.0.1:8000/api/run-simulation?soil_type=Clay&slope_angle=32.0&slip_depth=4.0&rainfall_intensity=50.0"
+  ```
+
+### 1.5 Train & Compare ML Models
 * **Method:** `POST`
 * **Path:** `/api/train-model`
 * **Description:** Fits Random Forest, Gradient Boosted Trees, LightGBM, and Deep Sequence models on the dataset, returning full metrics and leaderboard rankings.
 
-### 1.5 Real-Time Inference
+### 1.6 Real-Time Inference
 * **Method:** `POST`
 * **Path:** `/api/predict`
 * **Payload:**
@@ -74,32 +90,32 @@ The GeoTwin AI backend provides a full suite of RESTful endpoints and real-time 
   }
   ```
 
-### 1.6 Early Warning Alerts
+### 1.7 Early Warning Alerts
 * **Method:** `GET`
 * **Path:** `/api/get-alerts`
 * **Description:** Returns active alert level (`Green`, `Yellow`, `Orange`, `Red`), FoS, and recommended response protocol.
 
-### 1.7 2D Geospatial Risk Heatmap
+### 1.8 2D Geospatial Risk Heatmap
 * **Method:** `GET`
 * **Path:** `/api/get-risk-map`
 * **Description:** Returns a 2D matrix of localized safety factors across the slope distance and depth profile.
 
-### 1.8 Inject Disaster Disturbance
+### 1.9 Inject Disaster Disturbance
 * **Method:** `POST`
 * **Path:** `/api/inject-disaster?disaster_type=Cloudburst&magnitude=6.8`
 * **Supported Types:** `Cloudburst`, `Cyclone Rainfall`, `Extreme Rainfall`, `Earthquake`, `Flash Flood`, `Reservoir Overflow`, `Sudden Groundwater Surge`.
 
-### 1.9 Reset Disaster
+### 1.10 Reset Disaster
 * **Method:** `POST`
 * **Path:** `/api/reset-disaster`
 * **Description:** Restores baseline dry/stable conditions in the digital twin.
 
-### 1.10 Monte Carlo Simulation
+### 1.11 Monte Carlo Simulation
 * **Method:** `POST`
 * **Path:** `/api/monte-carlo?iterations=2000`
 * **Description:** Runs probabilistic uncertainty analysis across soil cohesion, friction, and pore pressure.
 
-### 1.11 Export Geotechnical Report
+### 1.12 Export Geotechnical Report
 * **Method:** `GET`
 * **Path:** `/api/export-report`
 * **Response:** Formatted HTML report printable as PDF.
