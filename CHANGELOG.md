@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2026-09-12
+
+### Fixed
+- **3D View & Control Buttons Fixes (`frontend/twin3d.js`, `frontend/app.js`):**
+  - Resolved missing global object binding (`window.twinViewer`) that caused 3D view options (**3D Perspective**, **Side Profile**, **Top View**) and viewport toggles (**Vectors**, **Water Plane**, **Sensors**) to fail silently.
+  - Implemented smooth camera lerp transitions for perspective, side profile, and top plan views.
+  - Fixed button event target handler and added visual `.active` class toggles for all feature control buttons.
+- **Geotechnical & Numerical Stability Rectifications (`backend/physics_engine.py`, `backend/digital_twin.py`, `backend/main.py`):**
+  - **Boundary Slope Angles:** Handled asymptotic edge conditions: flat ground ($\theta \le 0.5^\circ$) safely returns $FoS = 10.0$, while steep cliffs ($\theta \ge 75^\circ$) return $FoS \le 0.05$ (Failure Imminent).
+  - **Physical Hydrological Bounds:** Enforced physical maximum regolith mantle constraints on wetting front depth ($\le 8.0\text{ m}$) to prevent numerical divergence in Green-Ampt infiltration.
+  - **Pore Water Pressure Physical Head Clamping:** Clamped hydrostatic head so pore water pressure head cannot exceed the slip surface depth ($head \le z$).
+  - **End-to-End Slip Depth Synchronization:** Added `slip_depth` parameter to `/api/run-simulation` and connected frontend depth slider to live backend physics recalculation.
+  - **State-Consistent Pore Pressure Recalculation:** Re-synchronized `pore_water_pressure` dynamically inside `_recompute_physics()` and cleanly cleared wetting front upon disaster reset.
+  - **WebSocket Lifecycle & Polling Fallback:** Hardened WebSocket reconnection timers and eliminated redundant REST polling intervals.
+
+### Added
+- **3D Natural Calamities Visualizer (`frontend/twin3d.js`):**
+  - **Dynamic Rain Storm Particle System:** 1,200 interactive 3D raindrops falling with velocity scaled by rainfall intensity ($mm/h$), atmospheric storm sky darkening, and cloudburst lightning flash effects.
+  - **Seismic Camera & Terrain Shake:** Procedural micro-vibration camera and mesh movement triggered by earthquake disasters and Peak Ground Acceleration ($PGA$).
+  - **Surface Flood Pooling:** Interactive 3D water surface pooling mesh activated during flash floods, reservoir overflows, and cloudburst deluges.
+  - **Disaster HUD Overlay:** Real-time calamity alert status badge rendered directly over the 3D viewport container.
+- **3D Soil Material Palette Switcher & Dynamic Terrain Deformation:**
+  - Standardized 3D material shaders and color palettes for all 6 soil classifications (*Clay, Sandy Soil, Silty Soil, Gravel, Laterite, Weathered Rock*).
+  - Dynamic 3D terrain geometry mesh deformation updated live when adjusting the **Slope Angle** slider ($5^\circ$ to $60^\circ$).
+  - Interactive **Slip Surface Depth** scaling ($1.0m$ to $8.0m$) and ground table elevation responsiveness.
+
+---
+
 ## [2.0.0-baseline] - 2026-09-05
 
 ### Added

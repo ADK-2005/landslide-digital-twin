@@ -96,11 +96,12 @@ def api_generate_dataset(samples: int = Query(default=10000, ge=500, le=200000))
 def api_run_simulation(
     soil_type: str = Query(default="Clay"),
     slope_angle: float = Query(default=28.0, ge=5.0, le=60.0),
+    slip_depth: float = Query(default=3.5, ge=1.0, le=8.0),
     rainfall_intensity: float = Query(default=35.0, ge=0.0, le=250.0),
     rainfall_duration: float = Query(default=6.0, ge=0.0, le=72.0),
     earthquake_mag: float = Query(default=0.0, ge=0.0, le=8.5)
 ):
-    digital_twin.set_environment(soil_type, slope_angle)
+    digital_twin.set_environment(soil_type, slope_angle, slip_depth=slip_depth)
     digital_twin.rainfall_intensity = rainfall_intensity
     digital_twin.rainfall_duration_hours = rainfall_duration
     digital_twin.earthquake_mag = earthquake_mag

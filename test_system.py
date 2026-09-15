@@ -8,6 +8,7 @@ Verifies:
 """
 
 import sys
+import math
 import unittest
 import numpy as np
 import pandas as pd
@@ -140,6 +141,34 @@ class TestLandslideDigitalTwin(unittest.TestCase):
         self.assertIn("Geotechnical Digital Twin Early Warning Report", html)
         self.assertIn("Factor of Safety", html)
         self.assertIn("RG-01 Optical Rain Gauge", html)
+
+    def test_07_stability_edge_cases(self):
+        """Test stability edge cases: flat ground, near-vertical slopes, bounded pore pressure, and depth synchronization"""
+        # Flat ground: FoS must be 10.0 (Safe)
+        fos_flat, risk_flat = compute_factor_of_safety(
+            cohesion=10.0, friction_angle_deg=25.0, unit_weight=18.0,
+            depth=3.0, slope_angle_deg=0.0, pore_water_pressure=0.0
+        )
+        self.assertEqual(fos_flat, 10.0)
+        self.assertEqual(risk_flat, "Safe")
+
+        # Vertical cliff (>75°): FoS must indicate Failure Imminent
+        fos_vert, risk_vert = compute_factor_of_safety(
+            cohesion=10.0, friction_angle_deg=25.0, unit_weight=18.0,
+            depth=3.0, slope_angle_deg=80.0, pore_water_pressure=0.0
+        )
+        self.assertLessEqual(fos_vert, 0.1)
+        self.assertEqual(risk_vert, "Failure Imminent")
+
+        # Bounded pore pressure: head cannot exceed physical depth
+        u_bounded = compute_pore_pressure(depth_m=3.0, groundwater_table_depth_m=-5.0, slope_angle_deg=30.0)
+        max_possible_u = 9.81 * 3.0 * (math.cos(math.radians(30.0)) ** 2)
+        self.assertAlmostEqual(u_bounded, round(max_possible_u, 2), delta=0.05)
+
+        # Depth synchronization in digital twin
+        digital_twin.set_environment("Clay", 30.0, slip_depth=5.5)
+        self.assertEqual(digital_twin.slip_surface_depth, 5.5)
+        self.assertGreater(digital_twin.factor_of_safety, 0.0)
 
 if __name__ == "__main__":
     unittest.main()

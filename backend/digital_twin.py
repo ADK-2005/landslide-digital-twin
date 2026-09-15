@@ -68,13 +68,15 @@ class HillslopeDigitalTwin:
             {"id": "TH-01", "name": "Meteo Temp/Humidity", "type": "weather", "x": 10.0, "y": 42.0, "z": 15.0, "status": "active"}
         ]
 
-    def set_environment(self, soil_type: str, slope_angle: float, terrain_type: Optional[str] = None):
+    def set_environment(self, soil_type: str, slope_angle: float, terrain_type: Optional[str] = None, slip_depth: Optional[float] = None):
         if soil_type in SOIL_DATABASE:
             self.soil_type = soil_type
         if 5.0 <= slope_angle <= 60.0:
             self.slope_angle = slope_angle
         if terrain_type:
             self.terrain_type = terrain_type
+        if slip_depth is not None and 1.0 <= slip_depth <= 8.0:
+            self.slip_surface_depth = slip_depth
         self._recompute_physics()
 
     def inject_disaster(self, disaster_type: str, magnitude: float = 6.5, duration_ticks: int = 30) -> Dict[str, Any]:
@@ -132,6 +134,9 @@ class HillslopeDigitalTwin:
         self.displacement_cm = 0.0
         self.groundwater_depth = 4.8
         self.cumulative_infiltration = 0.05
+        self.wetting_front_depth = 0.4
+        self.soil_moisture_pct = 24.0
+        self.pore_water_pressure = 0.0
         self._recompute_physics()
 
     def step_simulation(self, dt_minutes: float = 5.0) -> Dict[str, Any]:
@@ -232,6 +237,14 @@ class HillslopeDigitalTwin:
         return telemetry
 
     def _recompute_physics(self):
+        # Dynamically recalculate pore water pressure u from current hillslope state
+        self.pore_water_pressure = compute_pore_pressure(
+            depth_m=self.slip_surface_depth,
+            groundwater_table_depth_m=self.groundwater_depth,
+            slope_angle_deg=self.slope_angle,
+            wetting_front_depth_m=self.wetting_front_depth
+        )
+
         soil = SOIL_DATABASE[self.soil_type]
         kh = earthquake_to_kh(self.earthquake_mag, self.acceleration_g)
 

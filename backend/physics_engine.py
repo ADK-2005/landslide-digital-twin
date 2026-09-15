@@ -97,6 +97,14 @@ def compute_factor_of_safety(
     FoS = [ c + root_c + (gamma * z * cos^2(theta) - u - kh * gamma * z * sin(theta) * cos(theta)) * tan(phi) ] /
           [ gamma * z * sin(theta) * cos(theta) + kh * gamma * z * cos^2(theta) ]
     """
+    # Near-vertical slope check (instability / toppling beyond infinite slope validity range)
+    if slope_angle_deg >= 75.0:
+        return 0.05, "Failure Imminent"
+
+    # Flat ground check (no driving gravitational shear stress)
+    if slope_angle_deg <= 0.5:
+        return 10.0, "Safe"
+
     theta = math.radians(slope_angle_deg)
     phi = math.radians(friction_angle_deg)
 
@@ -113,7 +121,7 @@ def compute_factor_of_safety(
     if seismic_kh > 0:
         shear_driving += seismic_kh * unit_weight * depth * cos2_theta
 
-    # Prevent division by zero on flat ground
+    # Prevent division by zero on flat or near-flat ground
     if shear_driving <= 1e-4:
         return 10.0, "Safe"
 
@@ -156,7 +164,7 @@ def green_ampt_step(
     Returns:
     - new_cumulative_inf_m: Cumulative infiltration (m)
     - infiltration_rate_mm_hr: Actual infiltration rate (mm/h)
-    - wetting_front_depth_m: Depth of wetting front (m)
+    - wetting_front_depth_m: Depth of wetting front (m, bounded by regolith layer)
     """
     k_sat_m_s = soil_params["saturated_k"]
     k_sat_mm_hr = k_sat_m_s * 1000.0 * 3600.0
@@ -176,7 +184,8 @@ def green_ampt_step(
     delta_F = (actual_rate / 1000.0) * dt_hours
     new_F = current_cumulative_inf_m + delta_F
 
-    wetting_front_depth = new_F / delta_theta
+    # Physically bounded wetting front depth (cannot exceed regolith layer depth ~8.0m)
+    wetting_front_depth = min(8.0, max(0.05, new_F / delta_theta))
     return new_F, actual_rate, wetting_front_depth
 
 
@@ -188,23 +197,23 @@ def compute_pore_pressure(
 ) -> float:
     """
     Computes pore water pressure u at depth z (kPa).
-    u = gamma_w * (z - z_wt) * cos^2(theta) when z > z_wt (saturated zone)
-    When above water table but reached by wetting front, matric suction transitions toward zero/positive.
+    u = gamma_w * head * cos^2(theta)
+    Head cannot exceed the physical depth of the slip surface below the ground surface.
     """
     gamma_w = 9.81  # kN/m^3
     theta = math.radians(slope_angle_deg)
     cos2 = math.cos(theta) ** 2
 
     if depth_m > groundwater_table_depth_m:
-        # Hydrostatic positive pressure from water table
-        head = depth_m - groundwater_table_depth_m
+        # Hydrostatic positive pressure from groundwater table (bounded by total depth)
+        head = min(depth_m, depth_m - max(0.0, groundwater_table_depth_m))
         u = gamma_w * head * cos2
     elif wetting_front_depth_m >= depth_m:
-        # Wetting front saturation near surface creates perched water table or near-zero suction
-        perched_head = (wetting_front_depth_m - depth_m) * 0.4
-        u = gamma_w * perched_head * cos2
+        # Wetting front saturation near surface creates perched water table
+        head = min(depth_m, (wetting_front_depth_m - depth_m) * 0.4)
+        u = gamma_w * head * cos2
     else:
-        # Unsaturated negative pore pressure (capillary suction) bounded
+        # Unsaturated zone capillary suction bounded
         u = 0.0
 
     return max(0.0, round(u, 2))

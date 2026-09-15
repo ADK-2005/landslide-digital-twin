@@ -23,9 +23,10 @@ const telemHistory = {
   pga: []
 };
 
-// WebSocket connection
+// WebSocket and poll state
 let ws = null;
 let wsReconnectTimer = null;
+let restPollInterval = null;
 
 // DOM Ready initialization
 document.addEventListener('DOMContentLoaded', () => {
@@ -253,12 +254,26 @@ function initWebSocket() {
   const wsUrl = `${protocol}//${window.location.host}/ws/telemetry`;
 
   try {
+    if (ws) {
+      ws.onclose = null;
+      ws.onerror = null;
+      try { ws.close(); } catch (e) {}
+      ws = null;
+    }
+
     ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       document.getElementById('conn-text').textContent = 'LIVE STREAMING';
       document.getElementById('telemetry-connection').classList.remove('offline');
-      if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+      if (wsReconnectTimer) {
+        clearTimeout(wsReconnectTimer);
+        wsReconnectTimer = null;
+      }
+      if (restPollInterval) {
+        clearInterval(restPollInterval);
+        restPollInterval = null;
+      }
     };
 
     ws.onmessage = (event) => {
@@ -276,17 +291,26 @@ function initWebSocket() {
     ws.onclose = () => {
       document.getElementById('conn-text').textContent = 'RECONNECTING...';
       document.getElementById('telemetry-connection').classList.add('offline');
-      wsReconnectTimer = setTimeout(initWebSocket, 2500);
+      if (!wsReconnectTimer) {
+        wsReconnectTimer = setTimeout(() => {
+          wsReconnectTimer = null;
+          initWebSocket();
+        }, 2500);
+      }
+      if (!restPollInterval) {
+        restPollInterval = setInterval(fetchTelemetryRest, 2000);
+      }
     };
 
     ws.onerror = (err) => {
       console.warn('WebSocket connection error, falling back to REST poll:', err);
-      ws.close();
+      try { ws.close(); } catch (e) {}
     };
   } catch (e) {
     console.error('Failed to initiate WebSocket:', e);
-    // Fallback REST polling
-    setInterval(fetchTelemetryRest, 1500);
+    if (!restPollInterval) {
+      restPollInterval = setInterval(fetchTelemetryRest, 2000);
+    }
   }
 }
 
@@ -555,31 +579,42 @@ async function initRiskHeatmap() {
 function initEventListeners() {
   // 3D View Buttons
   document.getElementById('view-perspective')?.addEventListener('click', (e) => {
-    setActiveViewBtn(e.target);
+    setActiveViewBtn(e.currentTarget);
     window.twinViewer?.setCameraView('perspective');
   });
   document.getElementById('view-profile')?.addEventListener('click', (e) => {
-    setActiveViewBtn(e.target);
+    setActiveViewBtn(e.currentTarget);
     window.twinViewer?.setCameraView('profile');
   });
   document.getElementById('view-top')?.addEventListener('click', (e) => {
-    setActiveViewBtn(e.target);
+    setActiveViewBtn(e.currentTarget);
     window.twinViewer?.setCameraView('top');
   });
 
-  document.getElementById('btn-toggle-vectors')?.addEventListener('click', () => {
-    window.twinViewer?.toggleVectors();
+  // Feature Toggles (Vectors, Water, Sensors)
+  const btnVectors = document.getElementById('btn-toggle-vectors');
+  btnVectors?.addEventListener('click', () => {
+    const isVisible = window.twinViewer?.toggleVectors();
+    btnVectors.classList.toggle('active', isVisible !== false);
   });
-  document.getElementById('btn-toggle-water')?.addEventListener('click', () => {
-    window.twinViewer?.toggleWater();
+
+  const btnWater = document.getElementById('btn-toggle-water');
+  btnWater?.addEventListener('click', () => {
+    const isVisible = window.twinViewer?.toggleWater();
+    btnWater.classList.toggle('active', isVisible !== false);
   });
-  document.getElementById('btn-toggle-sensors')?.addEventListener('click', () => {
-    window.twinViewer?.toggleSensors();
+
+  const btnSensors = document.getElementById('btn-toggle-sensors');
+  btnSensors?.addEventListener('click', () => {
+    const isVisible = window.twinViewer?.toggleSensors();
+    btnSensors.classList.toggle('active', isVisible !== false);
   });
 
   // Disaster Injection Buttons (Panel 9)
   document.querySelectorAll('.btn-disaster').forEach(btn => {
     btn.addEventListener('click', async () => {
+      document.querySelectorAll('.btn-disaster').forEach(b => b.classList.remove('active-disaster'));
+      btn.classList.add('active-disaster');
       const disaster = btn.getAttribute('data-disaster');
       const mag = btn.getAttribute('data-mag') || 6.5;
       try {
@@ -587,6 +622,7 @@ function initEventListeners() {
           method: 'POST'
         });
         showToast(`Disaster injected: ${disaster}`);
+        fetchTelemetryRest();
       } catch (e) {
         console.error('Error injecting disaster:', e);
       }
@@ -595,34 +631,55 @@ function initEventListeners() {
 
   // Reset Disaster
   document.getElementById('btn-reset-disasters')?.addEventListener('click', async () => {
+    document.querySelectorAll('.btn-disaster').forEach(b => b.classList.remove('active-disaster'));
     try {
       await fetch('/api/reset-disaster', { method: 'POST' });
       showToast('Baseline terrain conditions restored');
+      fetchTelemetryRest();
     } catch (e) {
       console.error(e);
     }
   });
 
-  // Controls: Soil Type & Slopes (Panel 10)
+  // Controls: Soil Type, Slopes & Depth (Panel 10)
   document.getElementById('select-soil')?.addEventListener('change', async (e) => {
     const soil = e.target.value;
+    window.twinViewer?.setSoilType(soil);
     const slope = document.getElementById('range-slope').value;
-    await fetch(`/api/run-simulation?soil_type=${encodeURIComponent(soil)}&slope_angle=${slope}`, { method: 'POST' });
+    const depth = document.getElementById('range-depth').value;
+    await fetch(`/api/run-simulation?soil_type=${encodeURIComponent(soil)}&slope_angle=${slope}&slip_depth=${depth}`, { method: 'POST' });
     initRiskHeatmap();
+    fetchTelemetryRest();
   });
 
   document.getElementById('range-slope')?.addEventListener('input', (e) => {
-    document.getElementById('lbl-slope-val').textContent = `${e.target.value}°`;
+    const slope = e.target.value;
+    document.getElementById('lbl-slope-val').textContent = `${slope}°`;
+    window.twinViewer?.setSlopeAngle(slope);
   });
   document.getElementById('range-slope')?.addEventListener('change', async (e) => {
     const slope = e.target.value;
+    window.twinViewer?.setSlopeAngle(slope);
     const soil = document.getElementById('select-soil').value;
-    await fetch(`/api/run-simulation?soil_type=${encodeURIComponent(soil)}&slope_angle=${slope}`, { method: 'POST' });
+    const depth = document.getElementById('range-depth').value;
+    await fetch(`/api/run-simulation?soil_type=${encodeURIComponent(soil)}&slope_angle=${slope}&slip_depth=${depth}`, { method: 'POST' });
     initRiskHeatmap();
+    fetchTelemetryRest();
   });
 
   document.getElementById('range-depth')?.addEventListener('input', (e) => {
-    document.getElementById('lbl-depth-val').textContent = `${e.target.value} m`;
+    const depth = e.target.value;
+    document.getElementById('lbl-depth-val').textContent = `${depth} m`;
+    window.twinViewer?.setSlipDepth(depth);
+  });
+  document.getElementById('range-depth')?.addEventListener('change', async (e) => {
+    const depth = e.target.value;
+    window.twinViewer?.setSlipDepth(depth);
+    const soil = document.getElementById('select-soil').value;
+    const slope = document.getElementById('range-slope').value;
+    await fetch(`/api/run-simulation?soil_type=${encodeURIComponent(soil)}&slope_angle=${slope}&slip_depth=${depth}`, { method: 'POST' });
+    initRiskHeatmap();
+    fetchTelemetryRest();
   });
 
   // Generate 100k Dataset Button

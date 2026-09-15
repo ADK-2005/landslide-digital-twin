@@ -248,10 +248,49 @@ body {
   cursor: pointer;
   transition: all 0.2s;
 }
-.btn-sm:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--text-primary);
+.btn-sm:hover, .btn-sm.active {
+  background: rgba(56, 189, 248, 0.25);
+  color: var(--accent-blue);
   border-color: var(--accent-blue);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+}
+
+.btn-disaster.active-disaster {
+  border-color: var(--alert-red) !important;
+  background: rgba(225, 29, 72, 0.25) !important;
+  box-shadow: 0 0 12px rgba(225, 29, 72, 0.4) !important;
+  animation: disaster-glow 1.2s infinite alternate;
+}
+
+@keyframes disaster-glow {
+  0% { box-shadow: 0 0 8px rgba(225, 29, 72, 0.4); }
+  100% { box-shadow: 0 0 20px rgba(225, 29, 72, 0.8); }
+}
+
+.disaster-hud-badge {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(225, 29, 72, 0.92);
+  color: #ffffff;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 20px rgba(225, 29, 72, 0.6);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: pulse-hud-badge 1.5s infinite alternate;
+}
+
+@keyframes pulse-hud-badge {
+  0% { transform: translateX(-50%) scale(1); box-shadow: 0 4px 15px rgba(225, 29, 72, 0.6); }
+  100% { transform: translateX(-50%) scale(1.04); box-shadow: 0 6px 25px rgba(225, 29, 72, 0.9); }
 }
 
 .btn-icon {
