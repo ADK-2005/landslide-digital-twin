@@ -402,11 +402,21 @@ function updateDashboard(telem) {
   }
 
   // Panel 6: ML Prediction
-  const prob = (stab.landslide_probability || 0.08) * 100;
+  const prob = (stab.landslide_probability !== undefined ? stab.landslide_probability : 0.08) * 100;
   document.getElementById('val-ml-prob').textContent = `${prob.toFixed(1)}%`;
+  
+  // Accurately map ML Risk classification and styling from ML probability / ml_risk_level
+  let mlRisk = stab.ml_risk_level;
+  if (!mlRisk) {
+    if (prob >= 80) mlRisk = 'Failure Imminent';
+    else if (prob >= 60) mlRisk = 'High Risk';
+    else if (prob >= 35) mlRisk = 'Moderate Risk';
+    else mlRisk = 'Safe';
+  }
+  
   const mlRiskEl = document.getElementById('val-ml-risk');
-  mlRiskEl.textContent = stab.risk_level || 'Safe';
-  mlRiskEl.style.color = getRiskColor(stab.risk_level);
+  mlRiskEl.textContent = mlRisk;
+  mlRiskEl.style.color = getRiskColor(mlRisk);
   document.getElementById('val-ml-conf').textContent = `${Math.max(prob, 100 - prob).toFixed(1)}%`;
 
   // Push to Chart History

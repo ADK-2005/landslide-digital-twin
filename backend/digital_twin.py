@@ -47,6 +47,7 @@ class HillslopeDigitalTwin:
         self.risk_level: str = "Safe"
         self.alert_level: str = "Green"            # Green, Yellow, Orange, Red
         self.landslide_prob: float = 0.08
+        self.ml_risk_level: str = "Safe"
         self.displacement_cm: float = 0.0          # Cumulative creep/displacement
 
         # Disaster injection active status
@@ -276,6 +277,7 @@ class HillslopeDigitalTwin:
             "Factor_of_Safety": self.factor_of_safety
         })
         self.landslide_prob = ml_res["probability"]
+        self.ml_risk_level = ml_res.get("risk_level", "Safe")
 
         # Multi-criteria alert fusion: FoS + Rain intensity + Water table + ML Probability
         if self.factor_of_safety <= 1.0 or self.landslide_prob > 0.85:
@@ -320,6 +322,7 @@ class HillslopeDigitalTwin:
                 "risk_level": self.risk_level,
                 "alert_level": self.alert_level,
                 "landslide_probability": round(self.landslide_prob, 4),
+                "ml_risk_level": self.ml_risk_level,
                 "displacement_cm": round(self.displacement_cm, 2),
                 "action_recommendation": action_map[self.alert_level]
             },
