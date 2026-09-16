@@ -637,10 +637,10 @@ This section explicitly outlines the theoretical and computational assumptions e
 
 ## 20. Project Team
 
-* **Lead Developer:** Developer 1
-* **Co-Developer / Research Collaborator:** Developer 2
-* **Institution:** Department of Civil & Geotechnical Engineering / Computer Science
-* **Academic Year:** 2025–2026
+* **Lead Developer:** Adithyakrishna U
+* **Co-Developer / Research Collaborator:** Drisya J Nath, Aswathy Biju 
+* **Institution:** Government Engineering College, Thrissur
+* **Academic Year:** 2026–2027
 
 ---
 
